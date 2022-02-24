@@ -33,7 +33,6 @@ independent_variables = ['koi_period', 'koi_period_err1', 'koi_period_err2', 'ko
                          'koi_steff', 'koi_steff_err1', 'koi_steff_err2', 'koi_slogg', 'koi_slogg_err1', 'koi_slogg_err2',
                          'koi_srad', 'koi_srad_err1', 'koi_srad_err2', 'ra', 'dec', 'koi_kepmag']
 
-
 # Drop unwanted columns from dataframe.
 df.drop(unwanted_cols, axis='columns', inplace=True)
 

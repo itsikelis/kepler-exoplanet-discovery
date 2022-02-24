@@ -7,11 +7,12 @@ from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
 from sklearn import metrics
 
 ##  Begin Important Variable Definitions  ##
 
-PCA_COMPONENTS = 29
+PCA_COMPONENTS = 20
 
 ##  End Important Variable Definitions  ##
 
@@ -37,6 +38,9 @@ independent_variables = ['koi_period', 'koi_period_err1', 'koi_period_err2', 'ko
                          'koi_steff', 'koi_steff_err1', 'koi_steff_err2', 'koi_slogg', 'koi_slogg_err1', 'koi_slogg_err2',
                          'koi_srad', 'koi_srad_err1', 'koi_srad_err2', 'ra', 'dec', 'koi_kepmag']
 
+# Turn categoricals to ints in dependent variable.
+df[dependent_variable].replace(
+    ['CANDIDATE', 'FALSE POSITIVE'], [1, 0], inplace=True)
 
 # Drop unwanted columns from dataframe.
 df.drop(unwanted_cols, axis='columns', inplace=True)
@@ -44,13 +48,18 @@ df.drop(unwanted_cols, axis='columns', inplace=True)
 # Remove all rows with NaN values.
 df.dropna(inplace=True)
 
-# Turn categoricals to ints in dependent variable.
-df[dependent_variable].replace(
-    ['CANDIDATE', 'FALSE POSITIVE'], [1, 0], inplace=True)
-
 # Put (in)dependent variables in dataframes.
 X = df[independent_variables]
 y = df[dependent_variable]
+
+##  Instantiate Plot object for ROC curves.  ##
+plt.figure()
+plt.plot([0, 1], [0, 1], 'k--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC Curve')
 
 ##  End Data Handling  ##
 
@@ -59,11 +68,11 @@ y = df[dependent_variable]
 ##  Begin PCA  ##
 
 # Standardise data
-X_std = StandardScaler().fit_transform(X)
+X_std_pca = StandardScaler().fit_transform(X)
 
 pca = PCA(n_components=PCA_COMPONENTS)
-pca.fit(X_std)
-X_std = pca.transform(X_std)
+pca.fit(X_std_pca)
+X_std_pca = pca.transform(X_std_pca)
 
 ##  End PCA  ##
 
@@ -71,44 +80,36 @@ X_std = pca.transform(X_std)
 
 ##  Begin Logistic Regression with PCA data.  ##
 
-# Split test/train data 70/30
-X_train, X_test, y_train, y_test = train_test_split(
-    X_std, y, train_size=.30, random_state=1)
+# Split test/train data 70/30 (Using X_std.)
+X_train_pca, X_test_pca, y_train_pca, y_test_pca = train_test_split(
+    X_std_pca, y, train_size=.30, random_state=1)
 
 # Instantiate logistic regression model.
 model = LogisticRegression(max_iter=10000)
-model = model.fit(X_train, y_train)
+model = model.fit(X_train_pca, y_train_pca)
 
-y_train_pred = model.predict(X_train)
-y_test_pred = model.predict(X_test)
+y_train_pred = model.predict(X_train_pca)
+y_test_pred = model.predict(X_test_pca)
 
 # Calculate model's accuracy.
 print('\n \n Normalisation Logistic Regression Results: ')
-score = model.score(X_test, y_test)
+score = model.score(X_test_pca, y_test_pca)
 print('Model Accuracy (%):', 100*score)
 
 # Determine the false positive and true positive rates
-fpr, tpr, _ = metrics.roc_curve(y_test, model.predict_proba(X_test)[:, 1])
+fpr, tpr, _ = metrics.roc_curve(
+    y_test_pca, model.predict_proba(X_test_pca)[:, 1])
 # Calculate AUC score.
 roc_auc = metrics.auc(fpr, tpr)
 
 # Print Confusion Matrix and Classification Report.
 print("Confusion Matrix :\n", metrics.confusion_matrix(
-    y_test, model.predict(X_test)))
+    y_test_pca, model.predict(X_test_pca)))
 print("Classification Report (1: Candidate Exoplanet, 0: False Positive Measurement ) :\n",
-      metrics.classification_report(y_test, model.predict(X_test)))
+      metrics.classification_report(y_test_pca, model.predict(X_test_pca)))
 
 # Plot the ROC curve.
-plt.figure()
-plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % roc_auc)
-plt.plot([0, 1], [0, 1], 'k--')
-plt.xlim([0.0, 1.0])
-plt.ylim([0.0, 1.05])
-plt.xlabel('False Positive Rate')
-plt.ylabel('True Positive Rate')
-plt.title('ROC Curve')
-plt.legend(loc="lower right")
-plt.show()
+plt.plot(fpr, tpr, label='ROC curve (PCA) (area = %0.2f)' % roc_auc)
 
 ##  End Logistic Regression with PCA data.  ##
 
@@ -118,7 +119,7 @@ input()
 
 
 ##  Begin Logistic Regression with Normalisation ##
-# Split test/train data 80/20
+# Split test/train data 80/20 (Using X.)
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, train_size=.30, random_state=1)
 
@@ -164,15 +165,34 @@ print("Classification Report (1: Candidate Exoplanet, 0: False Positive Measurem
       metrics.classification_report(y_test, model.predict(X_test)))
 
 # Plot the ROC curve.
-plt.figure()
-plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % roc_auc)
-plt.plot([0, 1], [0, 1], 'k--')
-plt.xlim([0.0, 1.0])
-plt.ylim([0.0, 1.05])
-plt.xlabel('False Positive Rate')
-plt.ylabel('True Positive Rate')
-plt.title('ROC Curve')
-plt.legend(loc="lower right") 
-plt.show()
+plt.plot(fpr, tpr, label='ROC curve (Norm) (area = %0.2f)' % roc_auc)
 
 ##  End Logistic Regression with Normalisation ##
+
+print('Continue with Support Vector Machines using normalisation on data. Press any key...')
+input()
+
+##  Begin SVM Classification  ##
+
+clf = SVC(kernel='linear', C=1.0, random_state=0)
+clf.fit(X_train, y_train)
+
+# Calculate model's accuracy.
+score = clf.score(X_test, y_test)
+print('Model Accuracy (%):', 100*score)
+
+# Determine the false positive and true positive rates
+fpr, tpr, _ = metrics.roc_curve(y_test, clf.predict(X_test))
+# Calculate AUC score.
+roc_auc = metrics.auc(fpr, tpr)
+
+# Print Confusion Matrix and Classification Report.
+print("Confusion Matrix :\n", metrics.confusion_matrix(y_test, clf.predict(X_test)))
+print("Classification Report (1: Candidate Exoplanet, 0: False Positive Measurement ) :\n",metrics.classification_report(y_test, clf.predict(X_test)))
+
+# Plot the ROC curve.
+plt.plot(fpr, tpr, label='ROC curve (SVM) (area = %0.2f)' % roc_auc)
+plt.legend(loc='best')
+plt.show()
+
+##  End SVM Classification  ##
