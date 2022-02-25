@@ -47,6 +47,10 @@ df[dependent_variable].replace(
 X = df[independent_variables]
 y = df[dependent_variable]
 
+y.hist()
+plt.title('Decision data distribution')
+plt.show()
+
 ##  End Data Handling  ##
 
 #########PCA###########
