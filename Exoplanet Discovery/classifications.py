@@ -9,6 +9,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.model_selection import cross_val_score
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import metrics
 
@@ -179,26 +180,54 @@ input()
 
 ##  Begin SVM Classification  ##
 
-clf = SVC(kernel='linear', C=1.0, random_state=0)
-clf.fit(X_train, y_train)
+svm = SVC(kernel='linear', C=1.0, random_state=0)
+svm.fit(X_train, y_train)
 
 # Calculate model's accuracy.
-score = clf.score(X_test, y_test)
+score = svm.score(X_test, y_test)
 print('Model Accuracy (%):', 100*score)
 
 # Determine the false positive and true positive rates
-fpr, tpr, _ = metrics.roc_curve(y_test, clf.predict(X_test))
+fpr, tpr, _ = metrics.roc_curve(y_test, svm.predict(X_test))
 # Calculate AUC score.
 roc_auc = metrics.auc(fpr, tpr)
 
 # Print Confusion Matrix and Classification Report.
-print("Confusion Matrix :\n", metrics.confusion_matrix(y_test, clf.predict(X_test)))
-print("Classification Report (1: Candidate Exoplanet, 0: False Positive Measurement ) :\n",metrics.classification_report(y_test, clf.predict(X_test)))
+print("Confusion Matrix :\n", metrics.confusion_matrix(y_test, svm.predict(X_test)))
+print("Classification Report (1: Candidate Exoplanet, 0: False Positive Measurement ) :\n",metrics.classification_report(y_test, svm.predict(X_test)))
 
 # Plot the ROC curve.
 plt.plot(fpr, tpr, label='ROC curve (SVM) (area = %0.2f)' % roc_auc)
 
 ##  End SVM Classification  ##
+
+print('Continue with k-Nearest Neighbours using normalisation on data. Press any key...')
+input()
+
+##  Begin kNN  ##
+
+knn = KNeighborsClassifier(n_neighbors=5, p=2, metric='minkowski')
+knn.fit(X_train, y_train)
+
+# Calculate model's accuracy.
+score = knn.score(X_test, y_test)
+print('Model Accuracy (%):', 100*score)
+
+# Determine the false positive and true positive rates
+fpr, tpr, _ = metrics.roc_curve(y_test, knn.predict(X_test))
+# Calculate AUC score.
+roc_auc = metrics.auc(fpr, tpr)
+
+# Print Confusion Matrix and Classification Report.
+print("Confusion Matrix :\n", metrics.confusion_matrix(
+    y_test, knn.predict(X_test)))
+print("Classification Report (1: Candidate Exoplanet, 0: False Positive Measurement ) :\n",
+      metrics.classification_report(y_test, knn.predict(X_test)))
+
+# Plot the ROC curve.
+plt.plot(fpr, tpr, label='ROC curve (kNN) (area = %0.2f)' % roc_auc)
+
+## End kNN  ##
 
 print('Continue with Random Forests without using normalisation on data. Press any key...')
 input()
