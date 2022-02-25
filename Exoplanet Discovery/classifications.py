@@ -8,11 +8,16 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
+from sklearn.model_selection import cross_val_score
+from sklearn.ensemble import RandomForestClassifier
 from sklearn import metrics
 
 ##  Begin Important Variable Definitions  ##
 
+TRAIN_SIZE = .40
 PCA_COMPONENTS = 20
+NUM_TREES = 100
+K_FOLD = 5
 
 ##  End Important Variable Definitions  ##
 
@@ -82,7 +87,7 @@ X_std_pca = pca.transform(X_std_pca)
 
 # Split test/train data 70/30 (Using X_std.)
 X_train_pca, X_test_pca, y_train_pca, y_test_pca = train_test_split(
-    X_std_pca, y, train_size=.30, random_state=1)
+    X_std_pca, y, train_size=TRAIN_SIZE, random_state=1)
 
 # Instantiate logistic regression model.
 model = LogisticRegression(max_iter=10000)
@@ -121,7 +126,7 @@ input()
 ##  Begin Logistic Regression with Normalisation ##
 # Split test/train data 80/20 (Using X.)
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, train_size=.30, random_state=1)
+    X, y, train_size=TRAIN_SIZE, random_state=1)
 
 # Print the maximum mean value of the sets before normalising.
 print('Maximum mean values of train/test sets before normalisation: ')
@@ -192,7 +197,37 @@ print("Classification Report (1: Candidate Exoplanet, 0: False Positive Measurem
 
 # Plot the ROC curve.
 plt.plot(fpr, tpr, label='ROC curve (SVM) (area = %0.2f)' % roc_auc)
+
+##  End SVM Classification  ##
+
+print('Continue with Random Forests without using normalisation on data. Press any key...')
+input()
+
+##  Begin Random Forests  ##
+
+# Resplit data
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, train_size=TRAIN_SIZE, random_state=1)
+
+forest = RandomForestClassifier(n_estimators=NUM_TREES, criterion='gini').fit(X_train, y_train)
+forest.fit(X_train, y_train)
+
+# Calculate model's accuracy.
+print('\n \n Random Forest Results: ')
+score = forest.score(X_test, y_test)
+print('Model Accuracy (%):', 100*score)
+
+# Determine the false positive and true positive rates
+fpr, tpr, _ = metrics.roc_curve(y_test, forest.predict_proba(X_test)[:, 1])
+# Calculate AUC score.
+roc_auc = metrics.auc(fpr, tpr)
+
+# Print Confusion Matrix and Classification Report.
+print("Confusion Matrix :\n", metrics.confusion_matrix(y_test, forest.predict(X_test)))
+print("Classification Report (1: Candidate Exoplanet, 0: False Positive Measurement ) :\n", metrics.classification_report(y_test, forest.predict(X_test)))
+
+plt.plot(fpr, tpr, label='ROC curve (RF) (area = %0.2f)' % roc_auc)
 plt.legend(loc='best')
 plt.show()
 
-##  End SVM Classification  ##
+##  End Random Forests  ##
